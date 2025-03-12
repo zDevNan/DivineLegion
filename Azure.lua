@@ -1,17 +1,21 @@
 local player = game:GetService("Players").LocalPlayer
-local slingshotEvent = player:WaitForChild("RemoteEvent")
+local character = player.Character or player.CharacterAdded:Wait()
+local slingshotEvent = character:WaitForChild("Slingshot"):WaitForChild("RemoteEvent")
+
+local allowedMobs = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
 
 while true do
-    wait(0.5) -- Ajuste para não sobrecarregar o servidor
+    wait(0.5) -- Evita sobrecarga no servidor
 
-    -- Procura um mob dentro da lista dos permitidos
+    -- Verifica os inimigos no workspace
     for _, mob in pairs(workspace.Enemies:GetChildren()) do
-        if mob:IsA("Model") and (mob.Name == "Boar" or mob.Name == "Crab" or mob.Name == "Angry" or mob.Name == "Thief" or mob.Name == "Gunslinger" or mob.Name == "Freddy") then
-            local mobPosition = mob:FindFirstChild("HumanoidRootPart")
-            
-            if mobPosition then
+        if mob:IsA("Model") and table.find(allowedMobs, mob.Name) then
+            local mobHead = mob:FindFirstChild("WeldToHead") or mob:FindFirstChild("HumanoidRootPart")
+
+            if mobHead then
                 local args = {
-                    [1] = mobPosition.CFrame
+                    [1] = mobHead.CFrame, -- Dispara na posição do mob
+                    [2] = mobHead -- Define o alvo específico
                 }
                 slingshotEvent:FireServer(unpack(args)) -- Atira no mob
             end
