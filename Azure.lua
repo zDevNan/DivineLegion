@@ -9,7 +9,7 @@ local function comprarSlingshot()
         [1] = "Buy",
         [2] = "Slingshot"
     }
-    workspace.Merchants.WeaponMerchant.Clickable.Retum:FireServer(unpack(args))
+    workspace.Merchants.SniperMerchant.Clickable.Retum:FireServer(unpack(args))
     wait(2) -- Espera um pouco antes de equipar
 end
 
