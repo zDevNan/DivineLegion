@@ -3,18 +3,18 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local missionGui = player.PlayerGui:WaitForChild("MissionGui")
 local cashData = workspace.UserData["User_" .. player.UserId].Data.Cash
-local enemies = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
+local enemies = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"} -- To pensando em tirar gunslinger pq ele atira
 
--- Função para resetar a data
+-- Função da resetar a data
 local function resetData()
     workspace:WaitForChild("UserData"):WaitForChild("User_" .. player.UserId):WaitForChild("Stats"):FireServer()
-    wait(2) -- Espera um tempo para garantir que a data resetou
+    wait(2)
 end
 
 -- Função para pegar a missão Expertise
 local function pegarMissao()
     workspace.Merchants.ExpertiseMerchant.Clickable.Retum:FireServer()
-    wait(2) -- Dá um tempo para o servidor processar a nova missão
+    wait(2) -- tempo para o servidor processar a nova missão
 end
 
 -- Verifica se a missão é "Complete 1 quest objectives."
