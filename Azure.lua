@@ -1,45 +1,20 @@
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local enemies = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
+local player = game:GetService("Players").LocalPlayer
+local slingshotEvent = player:WaitForChild("RemoteEvent")
 
--- Compra o Slingshot
-local function comprarSlingshot()
-    local args = {
-        [1] = "Buy",
-        [2] = "Slingshot"
-    }
-    workspace.Merchants.SniperMerchant.Clickable.Retum:FireServer(unpack(args))
-    wait(2) -- Espera um pouco antes de equipar
-end
+while true do
+    wait(0.5) -- Ajuste para não sobrecarregar o servidor
 
--- Equipa o Slingshot da mochila
-local function equiparSlingshot()
-    local backpack = player.Backpack
-    local slingshot = backpack:FindFirstChild("Slingshot")
-
-    if slingshot then
-        player.Character.Humanoid:EquipTool(slingshot)
-    else
-        warn("Slingshot não encontrado na mochila!")
-    end
-end
-
--- Move o jogador até um mob e atira até derrotá-lo
-local function atacarMobs()
-    for _, mob in ipairs(workspace.Enemies:GetChildren()) do
-        if table.find(enemies, mob.Name) then
-            while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 do
-                humanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame + Vector3.new(0, 25, 0) -- Mantém distância segura
-                game:GetService("ReplicatedStorage").Weapons.Slingshot.Fire:FireServer(mob.HumanoidRootPart.Position)
-                wait(0.5)
+    -- Procura um mob dentro da lista dos permitidos
+    for _, mob in pairs(workspace.Enemies:GetChildren()) do
+        if mob:IsA("Model") and (mob.Name == "Boar" or mob.Name == "Crab" or mob.Name == "Angry" or mob.Name == "Thief" or mob.Name == "Gunslinger" or mob.Name == "Freddy") then
+            local mobPosition = mob:FindFirstChild("HumanoidRootPart")
+            
+            if mobPosition then
+                local args = {
+                    [1] = mobPosition.CFrame
+                }
+                slingshotEvent:FireServer(unpack(args)) -- Atira no mob
             end
         end
     end
 end
-
--- Executa o processo completo
-comprarSlingshot()
-equiparSlingshot()
-wait(1)
-atacarMobs()
