@@ -39,7 +39,7 @@ local function getMission()
             local missionName = missionGui.Frame.Header.Text
             print("📜 Missão recebida: " .. missionName)
 
-            if missionName == "Mission Objective" then
+            if missionName == "Complete 1 quest objectives." then
                 print("✅ Missão correta obtida!")
                 return true
             else
