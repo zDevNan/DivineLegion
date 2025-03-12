@@ -1,40 +1,37 @@
-local player = game:GetService("Players").LocalPlayer
+local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local slingshotEvent = character:WaitForChild("Slingshot"):WaitForChild("RemoteEvent")
 
-local allowedMobs = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
+local MobList = { "Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy" }
 
-while wait(1) do -- Pequeno delay para evitar lag
-    local closestMob = nil
-    local closestDistance = math.huge
+local function IsMobAllowed(mobName)
+    for _, allowedMob in ipairs(MobList) do
+        if string.find(mobName, allowedMob) then
+            return true
+        end
+    end
+    return false
+end
 
-    -- Encontra o mob mais próximo
-    for _, mob in pairs(workspace.Enemies:GetChildren()) do
-        if mob:IsA("Model") and table.find(allowedMobs, mob.Name) then
-            local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-            if mobRoot then
-                local distance = (humanoidRootPart.Position - mobRoot.Position).Magnitude
-                if distance < closestDistance then
-                    closestMob = mobRoot
-                    closestDistance = distance
+spawn(function()
+    while task.wait(0.1) do
+        pcall(function()
+            if _G.farmPosition then
+                character = player.Character or player.CharacterAdded:Wait()
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                
+                if humanoidRootPart then
+                    for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
+                        if mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") 
+                            and mob.Humanoid.Health > 0 and IsMobAllowed(mob.Name) then
+                            
+                            local mobRoot = mob.HumanoidRootPart
+                            humanoidRootPart.CFrame = mobRoot.CFrame * CFrame.new(0, 25, 0) -- 25 unidades acima do mob
+                            
+                            break -- Para evitar movimentações desnecessárias
+                        end
+                    end
                 end
             end
-        end
+        end)
     end
-
-    if closestMob then
-        -- Move o jogador 25 unidades acima do mob
-        humanoidRootPart.CFrame = closestMob.CFrame * CFrame.new(0, 25, 0)
-
-        -- Atira continuamente até o mob morrer
-        while closestMob and closestMob.Parent and closestMob.Parent:FindFirstChildOfClass("Humanoid") and closestMob.Parent:FindFirstChildOfClass("Humanoid").Health > 0 do
-            local args = {
-                [1] = humanoidRootPart.CFrame * CFrame.new(0, -5, 0), -- Dispara para baixo
-                [2] = closestMob
-            }
-            slingshotEvent:FireServer(unpack(args))
-            wait(0.3) -- Intervalo entre os tiros
-        end
-    end
-end
+end)
