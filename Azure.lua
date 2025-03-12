@@ -2,30 +2,39 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Backpack = LocalPlayer.Backpack
+local Backpack = LocalPlayer:FindFirstChild("Backpack")
 
 local mobsPermitidos = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
 
--- **🔄 Função para resetar a data do jogo**
+-- **🔄 Resetar a Data do Jogo**
 local function resetData()
     local userId = LocalPlayer.UserId
     print("🔄 Resetando a data do jogo...")
-    Workspace:WaitForChild("UserData"):WaitForChild("User_" .. userId):WaitForChild("Stats"):FireServer()
-    wait(2)
+    
+    local success, err = pcall(function()
+        Workspace:WaitForChild("UserData"):WaitForChild("User_" .. userId):WaitForChild("Stats"):FireServer()
+    end)
+
+    if success then
+        print("✅ Data resetada com sucesso!")
+    else
+        print("⚠️ Falha ao resetar data: " .. err)
+    end
+
+    wait(3) -- Dá tempo para o reset ser aplicado
 end
 
--- **📜 Função para pegar a missão do Expertise Merchant**
+-- **📜 Pegar a Missão do Expertise Merchant**
 local function getMission()
     local expertiseMerchant = Workspace:WaitForChild("Merchants"):WaitForChild("ExpertiseMerchant")
     local clickable = expertiseMerchant:WaitForChild("Clickable")
-    local missionGui = LocalPlayer.PlayerGui:FindFirstChild("MissionGui")
+    local missionGui = LocalPlayer.PlayerGui:WaitForChild("MissionGui", 5)
 
-    for i = 1, 10 do -- Tenta no máximo 10 vezes
+    for i = 1, 10 do -- Tenta até 10 vezes pegar a missão correta
         print("📜 Tentando pegar a missão... (Tentativa " .. i .. ")")
         clickable.Retum:FireServer()
-        wait(1)
+        wait(2) -- Dá tempo para o GUI atualizar
 
-        -- Verifica se o GUI da missão está visível e captura o nome da missão
         if missionGui and missionGui:FindFirstChild("Frame") and missionGui.Frame:FindFirstChild("Header") then
             local missionName = missionGui.Frame.Header.Text
             print("📜 Missão recebida: " .. missionName)
@@ -36,11 +45,9 @@ local function getMission()
             else
                 print("❌ Missão errada! Resetando data e tentando novamente...")
                 resetData()
-                wait(3)
             end
         else
             print("⚠️ GUI da missão não encontrado! Tentando novamente...")
-            wait(2)
         end
     end
 
@@ -48,11 +55,11 @@ local function getMission()
     return false
 end
 
--- **📍 Função para pegar e ativar o Compass**
+-- **📍 Pegar e Ativar o Compass**
 local function getAndUseCompass()
     print("📍 Pegando um Compass...")
     Workspace.Merchants.QuestMerchant.Clickable.Retum:FireServer("Claim1")
-    wait(1)
+    wait(2)
 
     local compass = Backpack:FindFirstChild("Compass")
     if compass then
@@ -71,11 +78,11 @@ local function getAndUseCompass()
     end
 end
 
--- **🛒 Função para comprar e equipar o Slingshot**
+-- **🛒 Comprar e Equipar o Slingshot**
 local function getAndEquipSlingshot()
     print("🛒 Comprando Slingshot...")
     Workspace.Merchants.WeaponMerchant.Clickable.Retum:FireServer("BuySlingshot")
-    wait(1)
+    wait(2)
 
     local slingshot = Backpack:FindFirstChild("Slingshot")
     if slingshot then
@@ -86,7 +93,7 @@ local function getAndEquipSlingshot()
     end
 end
 
--- **🎯 Função para atacar mobs com o Slingshot**
+-- **🎯 Atacar Mobs com Slingshot**
 local function attackMobs()
     print("🎯 Iniciando ataque aos mobs...")
     for _, mob in ipairs(Workspace.Enemies:GetChildren()) do
@@ -108,7 +115,7 @@ local function attackMobs()
     end
 end
 
--- **💰 Função para verificar Beri e pegar Daily2**
+-- **💰 Verificar Beri e Pegar Daily2**
 local function checkBeriAndClaimDaily2()
     local userId = LocalPlayer.UserId
     local beriValue = Workspace.UserData["User_" .. userId].Data.Cash.Value
@@ -121,23 +128,23 @@ local function checkBeriAndClaimDaily2()
     end
 end
 
--- **🎁 Função para resgatar todas as recompensas do Daily**
+-- **🎁 Resgatar Recompensas do Daily**
 local function claimAllDaily()
     local userId = LocalPlayer.UserId
     print("🎁 Pegando recompensas do AllDaily...")
     Workspace.UserData["User_" .. userId].ChallengesRemote:FireServer("Claim", "AllDaily")
 end
 
--- **🚀 Execução principal do script**
+-- **🚀 Execução Principal**
 if getMission() then
-    wait(1)
+    wait(2)
     getAndUseCompass()
-    wait(1)
+    wait(2)
     getAndEquipSlingshot()
-    wait(1)
+    wait(2)
     attackMobs()
-    wait(1)
+    wait(2)
     checkBeriAndClaimDaily2()
-    wait(1)
+    wait(2)
     claimAllDaily()
 end
