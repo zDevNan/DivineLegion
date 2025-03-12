@@ -3,8 +3,29 @@ local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
 local function ResetGameDate()
-    Workspace:WaitForChild("UserData"):WaitForChild("User_"..LocalPlayer.UserId):WaitForChild("Stats").Date.Value = 0
+    local Stats = Workspace:WaitForChild("UserData"):WaitForChild("User_"..LocalPlayer.UserId):WaitForChild("Stats")
+    Stats.Date.Value = 0
     print("Data do jogo resetada.")
+end
+
+local function GetMission()
+    local MissionGui = LocalPlayer.PlayerGui:FindFirstChild("MissionGui")
+
+    if MissionGui then
+        local MissionText = MissionGui.Frame.Frame.Header.Text
+
+        if MissionText ~= "Mission Objective" then
+            print("Missão incorreta, resetando...")
+            ResetGameDate()
+            wait(1)
+            local Event = Workspace.Merchants.ExpertiseMerchant.Clickable.Retum
+            Event:FireServer() -- Tentativa de pegar outra missão
+        else
+            print("Missão correta obtida!")
+            return true
+        end
+    end
+    return false
 end
 
 local function ClaimDailyRewards()
@@ -15,11 +36,6 @@ local function ClaimDailyRewards()
     ChallengesRemote:FireServer("Claim", "Daily4")
     ChallengesRemote:FireServer("Claim", "AllDaily")
     print("Recompensas diárias resgatadas.")
-end
-
-local function CheckMission()
-    local MissionGui = LocalPlayer.PlayerGui.MissionGui.Frame.Frame.Header
-    return MissionGui.Text == "Mission Objective"
 end
 
 local function GetCompassAndUse()
@@ -60,15 +76,23 @@ local function FarmBeri()
     end
 end
 
--- Execução do fluxo
-while true do
-    if not CheckMission() then
-        ResetGameDate()
+-- **Loop para pegar missão correta antes de continuar**
+spawn(function()
+    while true do
         wait(1)
-    else
-        GetCompassAndUse()
-        ClaimDailyRewards()
-        FarmBeri()
-        wait(10)
+        if not GetMission() then
+            local Event = Workspace.Merchants.ExpertiseMerchant.Clickable.Retum
+            Event:FireServer() -- Tenta pegar outra missão
+        else
+            break
+        end
     end
-end
+end)
+
+-- **Executa as ações após pegar a missão correta**
+spawn(function()
+    wait(3) -- Pequena espera para garantir que a missão foi pega
+    GetCompassAndUse()
+    ClaimDailyRewards()
+    FarmBeri()
+end)
