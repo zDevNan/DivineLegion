@@ -1,186 +1,111 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Backpack = LocalPlayer.Backpack
 
--- **Lista dos mobs permitidos**
-local AllowedMobs = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
+local mobsPermitidos = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
 
--- **Resetar a data do jogo**
-local function ResetGameDate()
-    local Stats = Workspace:WaitForChild("UserData"):WaitForChild("User_"..LocalPlayer.UserId):WaitForChild("Stats")
-    Stats.Date.Value = 0
-    print("⏳ Data do jogo resetada.")
+-- **Função para resetar a data do jogo**
+local function resetData()
+    local userId = LocalPlayer.UserId
+    Workspace:WaitForChild("UserData"):WaitForChild("User_" .. userId):WaitForChild("Stats"):FireServer()
 end
 
--- **Pegar a missão correta**
-local function GetMission()
-    local MissionGui = LocalPlayer.PlayerGui:FindFirstChild("MissionGui")
-
-    if MissionGui then
-        local MissionText = MissionGui.Frame.Frame.Header.Text
-
-        if MissionText == "Mission Objective" then
-            print("✅ Missão correta obtida!")
-            return true
-        else
-            print("❌ Missão errada, resetando...")
-            ResetGameDate()
+-- **Função para pegar a missão do Expertise Merchant**
+local function getMission()
+    local missionGui = LocalPlayer.PlayerGui:FindFirstChild("MissionGui")
+    if missionGui and missionGui:FindFirstChild("Frame") and missionGui.Frame:FindFirstChild("Header") then
+        local missionName = missionGui.Frame.Header.Text
+        if missionName ~= "Mission Objective" then
+            resetData() -- Reseta se a missão não for a correta
             wait(1)
-            workspace.Merchants.ExpertiseMerchant.Clickable.Retum:FireServer()
-        end
-    end
-    return false
-end
-
--- **Pegar um Compass**
-local function GetCompass()
-    workspace.Merchants.QuestMerchant.Clickable.Retum:FireServer("Claim1")
-    print("🧭 Compass coletado!")
-    wait(2)
-end
-
--- **Usar o Compass**
-local function UseCompass()
-    local Backpack = LocalPlayer:FindFirstChild("Backpack")
-    if Backpack then
-        local Compass = Backpack:FindFirstChild("Compass")
-        if Compass then
-            LocalPlayer.Character.Humanoid:EquipTool(Compass)
-            local Poser = Compass:FindFirstChild("Poser")
-            if Poser then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = Poser.Value
-                print("📍 Posição do Compass alcançada.")
-                wait(2)
-                Compass:Activate()
-                print("🧭 Compass ativado!")
-            end
+            Workspace.Merchants.ExpertiseMerchant.Clickable.Retum:FireServer()
+            wait(1)
+            getMission() -- Tenta novamente
         end
     end
 end
 
--- **Resgatar a recompensa do Compass**
-local function ClaimCompassReward()
-    local CompassEvent = Workspace.UserData["User_"..LocalPlayer.UserId].ChallengesRemote
-    CompassEvent:FireServer("Claim", "Daily4")
-    print("🎁 Recompensa do Compass coletada.")
-end
+-- **Função para pegar e ativar o Compass**
+local function getAndUseCompass()
+    -- Pega um Compass
+    Workspace.Merchants.QuestMerchant.Clickable.Retum:FireServer("Claim1")
+    wait(1)
 
--- **Comprar e equipar o Slingshot**
-local function BuyAndEquipSlingshot()
-    workspace.Merchants.WeaponMerchant.Clickable.Retum:FireServer()
-    print("🏹 Slingshot comprado.")
+    -- Equipa o Compass e teleporta o jogador
+    local compass = Backpack:FindFirstChild("Compass")
+    if compass then
+        compass.Parent = Character -- Move para o personagem (equipa)
+        wait(1)
 
-    local Backpack = LocalPlayer:FindFirstChild("Backpack")
-    if Backpack then
-        local Slingshot = Backpack:FindFirstChild("Slingshot")
-        if Slingshot then
-            LocalPlayer.Character.Humanoid:EquipTool(Slingshot)
-            print("🏹 Slingshot equipado.")
+        -- **Teleporta o player para o objetivo**
+        local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart and compass:FindFirstChild("Poser") then
+            humanoidRootPart.CFrame = CFrame.new(compass.Poser.Value)
         end
     end
 end
 
--- **Fazer 30 kills com o Slingshot nos mobs permitidos**
-local function Complete30Kills()
-    local Kills = 0
+-- **Função para comprar e equipar o Slingshot**
+local function getAndEquipSlingshot()
+    Workspace.Merchants.WeaponMerchant.Clickable.Retum:FireServer("BuySlingshot")
+    wait(1)
+    
+    local slingshot = Backpack:FindFirstChild("Slingshot")
+    if slingshot then
+        slingshot.Parent = Character
+    end
+end
 
-    while Kills < 30 do
-        for _, MobName in ipairs(AllowedMobs) do
-            local Mob = Workspace.Enemies:FindFirstChild(MobName)
-            if Mob and Mob:FindFirstChild("Humanoid") and Mob.Humanoid.Health > 0 then
-                -- Posiciona o jogador acima do mob
-                LocalPlayer.Character.HumanoidRootPart.CFrame = Mob.HumanoidRootPart.CFrame + Vector3.new(0, 25, 0)
-
+-- **Função para atacar mobs com o Slingshot**
+local function attackMobs()
+    for _, mob in ipairs(Workspace.Enemies:GetChildren()) do
+        if table.find(mobsPermitidos, mob.Name) then
+            local mobRoot = mob:FindFirstChild("HumanoidRootPart")
+            if mobRoot then
+                -- Posição acima do mob para atacar de longe
+                local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+                if humanoidRootPart then
+                    humanoidRootPart.CFrame = mobRoot.CFrame * CFrame.new(0, 25, 0)
+                end
+                
                 -- Atira no mob até ele morrer
-                local Slingshot = LocalPlayer.Character:FindFirstChild("Slingshot")
-                if Slingshot then
-                    while Mob.Humanoid.Health > 0 do
-                        Slingshot:Activate()
-                        wait(1)
-                    end
-
-                    Kills = Kills + 1
-                    print("☠️ Kill "..Kills.." de 30 concluída!")
-                    if Kills >= 30 then break end
+                while mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 do
+                    -- Simula um ataque com o Slingshot
+                    Workspace.Remotes.WeaponRemote:FireServer("SlingshotAttack", mobRoot.Position)
+                    wait(0.5)
                 end
             end
         end
-        wait(1)
     end
-
-    print("✅ 30 Kills concluídas!")
 end
 
--- **Verificar se o jogador tem 10k Beri antes de pegar o Daily2**
-local function CheckBeri()
-    local Data = Workspace.UserData["User_"..LocalPlayer.UserId].Data
-    local Cash = Data.Cash.Value
+-- **Função para verificar Beri e pegar Daily2**
+local function checkBeriAndClaimDaily2()
+    local userId = LocalPlayer.UserId
+    local beriValue = Workspace:FindFirstChild("UserData"):FindFirstChild("User_" .. userId):FindFirstChild("Data"):FindFirstChild("Cash").Value
 
-    while Cash < 10000 do
-        print("💰 Aguardando 10k Beri... (atualmente: "..Cash.." Beri)")
-        wait(2)
-        Cash = Data.Cash.Value
+    if beriValue >= 10000 then
+        Workspace.UserData["User_" .. userId].ChallengesRemote:FireServer("Claim", "Daily2")
     end
-
-    print("💰 10k Beri alcançados!")
 end
 
--- **Completar as missões diárias (agora Daily2 só após 10k Beri)**
-local function CompleteDailyMissions()
-    print("📌 Completando missões diárias...")
-
-    local DailyEvent = Workspace.UserData["User_"..LocalPlayer.UserId].ChallengesRemote
-
-    -- Fazer uma missão (2.5k Beri)
-    DailyEvent:FireServer("Claim", "Daily1")
-
-    -- **Aguardar 10k Beri antes de resgatar o Daily2**
-    CheckBeri()
-    DailyEvent:FireServer("Claim", "Daily2")
-
-    -- Fazer um Compass
-    DailyEvent:FireServer("Claim", "Daily4")
-
-    -- Resgatar 30 kills APÓS completar
-    DailyEvent:FireServer("Claim", "Daily3")
-
-    print("✅ Todas as missões diárias foram completadas.")
+-- **Função para resgatar todas as recompensas do Daily**
+local function claimAllDaily()
+    local userId = LocalPlayer.UserId
+    Workspace.UserData["User_" .. userId].ChallengesRemote:FireServer("Claim", "AllDaily")
 end
 
--- **Resgatar todas as recompensas do Daily (somente após completar tudo)**
-local function ClaimAllDaily()
-    local DailyEvent = Workspace.UserData["User_"..LocalPlayer.UserId].ChallengesRemote
-    DailyEvent:FireServer("Claim", "AllDaily")
-    print("🎁 Recompensas do Daily coletadas (10 gem).")
-end
-
--- **Resetar a data do jogo após tudo**
-local function FinalReset()
-    ResetGameDate()
-    print("🔄 Data resetada após completar todas as tarefas.")
-end
-
--- **Execução**
-spawn(function()
-    while true do
-        wait(1)
-        if GetMission() then
-            GetCompass()
-            wait(2)
-            UseCompass()
-            wait(5)
-            ClaimCompassReward()
-            wait(2)
-            BuyAndEquipSlingshot()
-            wait(2)
-            Complete30Kills() -- Agora faz 30 kills apenas nos mobs permitidos
-            wait(2)
-            CompleteDailyMissions()
-            wait(2)
-            ClaimAllDaily()
-            wait(2)
-            FinalReset()
-            break
-        end
-    end
-end)
+-- **Execução principal do script**
+getMission() -- Pega a missão correta
+wait(1)
+getAndUseCompass() -- Pega o Compass e teleporta
+wait(1)
+getAndEquipSlingshot() -- Compra e equipa o Slingshot
+wait(1)
+attackMobs() -- Faz as 30 kills necessárias
+wait(1)
+checkBeriAndClaimDaily2() -- Verifica se tem 10k Beri antes de pegar Daily2
+wait(1)
+claimAllDaily() -- Resgata as recompensas do Daily quando tudo estiver pronto
