@@ -4,7 +4,7 @@ local Workspace = game:GetService("Workspace")
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Backpack = LocalPlayer.Backpack
 
-local mobsPermitidos = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
+local mobsPermitidos = {"Boar", "Crab", "Angry", "Thief", "Freddy"}
 
 -- **Função para resetar a data do jogo**
 local function resetData()
@@ -14,17 +14,31 @@ end
 
 -- **Função para pegar a missão do Expertise Merchant**
 local function getMission()
+    local expertiseMerchant = Workspace:WaitForChild("Merchants"):WaitForChild("ExpertiseMerchant")
+    local clickable = expertiseMerchant:WaitForChild("Clickable")
     local missionGui = LocalPlayer.PlayerGui:FindFirstChild("MissionGui")
-    if missionGui and missionGui:FindFirstChild("Frame") and missionGui.Frame:FindFirstChild("Header") then
-        local missionName = missionGui.Frame.Header.Text
-        if missionName ~= "Mission Objective" then
-            resetData() -- Reseta se a missão não for a correta
-            wait(1)
-            Workspace.Merchants.ExpertiseMerchant.Clickable.Retum:FireServer()
-            wait(1)
-            getMission() -- Tenta novamente
+
+    -- Loop para garantir que pega a missão certa
+    for i = 1, 10 do -- Tenta 10 vezes no máximo
+        clickable.Retum:FireServer()
+        wait(1)
+
+        -- Verifica se pegou a missão correta
+        if missionGui and missionGui:FindFirstChild("Frame") and missionGui.Frame:FindFirstChild("Header") then
+            local missionName = missionGui.Frame.Header.Text
+            if missionName == "Mission Objective" then
+                print("✅ Missão correta obtida!")
+                return true
+            else
+                print("❌ Missão errada, resetando data...")
+                resetData()
+                wait(2)
+            end
         end
     end
+
+    print("⚠️ Não conseguiu pegar a missão correta!")
+    return false
 end
 
 -- **Função para pegar e ativar o Compass**
@@ -98,14 +112,15 @@ local function claimAllDaily()
 end
 
 -- **Execução principal do script**
-getMission() -- Pega a missão correta
-wait(1)
-getAndUseCompass() -- Pega o Compass e teleporta
-wait(1)
-getAndEquipSlingshot() -- Compra e equipa o Slingshot
-wait(1)
-attackMobs() -- Faz as 30 kills necessárias
-wait(1)
-checkBeriAndClaimDaily2() -- Verifica se tem 10k Beri antes de pegar Daily2
-wait(1)
-claimAllDaily() -- Resgata as recompensas do Daily quando tudo estiver pronto
+if getMission() then
+    wait(1)
+    getAndUseCompass() -- Pega o Compass e teleporta
+    wait(1)
+    getAndEquipSlingshot() -- Compra e equipa o Slingshot
+    wait(1)
+    attackMobs() -- Faz as 30 kills necessárias
+    wait(1)
+    checkBeriAndClaimDaily2() -- Verifica se tem 10k Beri antes de pegar Daily2
+    wait(1)
+    claimAllDaily() -- Resgata as recompensas do Daily quando tudo estiver pronto
+end
