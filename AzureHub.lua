@@ -5,10 +5,11 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 local Window = Fluent:CreateWindow({
     Title = "Farm Script",
     SubTitle = "Auto Farm Fluent",
-    TabWidth = 160,
-    Size = UDim2.new(0, 500, 0, 350),
+    TabWidth = 100,
+    Size = UDim2.fromOffset(600, 350),
     Acrylic = true,
     Theme = "Dark"
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
 local AutoTab = Window:AddTab({ Title = "Automation" })
