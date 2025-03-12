@@ -1,150 +1,85 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Workspace = game:GetService("Workspace")
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Backpack = LocalPlayer:FindFirstChild("Backpack")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local missionGui = player.PlayerGui:WaitForChild("MissionGui")
+local cashData = workspace.UserData["User_" .. player.UserId].Data.Cash
+local enemies = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
 
-local mobsPermitidos = {"Boar", "Crab", "Angry", "Thief", "Gunslinger", "Freddy"}
-
--- **🔄 Resetar a Data do Jogo**
+-- Função para resetar a data
 local function resetData()
-    local userId = LocalPlayer.UserId
-    print("🔄 Resetando a data do jogo...")
-    
-    local success, err = pcall(function()
-        Workspace:WaitForChild("UserData"):WaitForChild("User_" .. userId):WaitForChild("Stats"):FireServer()
-    end)
-
-    if success then
-        print("✅ Data resetada com sucesso!")
-    else
-        print("⚠️ Falha ao resetar data: " .. err)
-    end
-
-    wait(3) -- Dá tempo para o reset ser aplicado
+    workspace:WaitForChild("UserData"):WaitForChild("User_" .. player.UserId):WaitForChild("Stats"):FireServer()
+    wait(2) -- Espera um tempo para garantir que a data resetou
 end
 
--- **📜 Pegar a Missão do Expertise Merchant**
-local function getMission()
-    local expertiseMerchant = Workspace:WaitForChild("Merchants"):WaitForChild("ExpertiseMerchant")
-    local clickable = expertiseMerchant:WaitForChild("Clickable")
-    local missionGui = LocalPlayer.PlayerGui:WaitForChild("MissionGui", 5)
-
-    for i = 1, 10 do -- Tenta até 10 vezes pegar a missão correta
-        print("📜 Tentando pegar a missão... (Tentativa " .. i .. ")")
-        clickable.Retum:FireServer()
-        wait(2) -- Dá tempo para o GUI atualizar
-
-        if missionGui and missionGui:FindFirstChild("Frame") and missionGui.Frame:FindFirstChild("Header") then
-            local missionName = missionGui.Frame.Header.Text
-            print("📜 Missão recebida: " .. missionName)
-
-            if missionName == "Complete 1 quest objectives." then
-                print("✅ Missão correta obtida!")
-                return true
-            else
-                print("❌ Missão errada! Resetando data e tentando novamente...")
-                resetData()
-            end
-        else
-            print("⚠️ GUI da missão não encontrado! Tentando novamente...")
-        end
-    end
-
-    print("⚠️ Falha ao pegar a missão correta após 10 tentativas.")
-    return false
+-- Função para pegar a missão Expertise
+local function pegarMissao()
+    workspace.Merchants.ExpertiseMerchant.Clickable.Retum:FireServer()
+    wait(2) -- Dá um tempo para o servidor processar a nova missão
 end
 
--- **📍 Pegar e Ativar o Compass**
-local function getAndUseCompass()
-    print("📍 Pegando um Compass...")
-    Workspace.Merchants.QuestMerchant.Clickable.Retum:FireServer("Claim1")
-    wait(2)
+-- Verifica se a missão é "Complete 1 quest objectives."
+local function verificarMissao()
+    local descricao = missionGui.Frame.Frame.Description.Text
+    return descricao:match("Complete 1 quest objectives%.")
+end
 
-    local compass = Backpack:FindFirstChild("Compass")
-    if compass then
-        compass.Parent = Character
-        wait(1)
-
-        local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-        if humanoidRootPart and compass:FindFirstChild("Poser") then
-            print("📍 Teleportando para a posição do Compass...")
-            humanoidRootPart.CFrame = CFrame.new(compass.Poser.Value)
-        else
-            print("⚠️ Falha ao encontrar Poser do Compass!")
-        end
-    else
-        print("⚠️ Compass não encontrado na mochila!")
+-- Loop para garantir que a missão seja a correta
+local function garantirMissaoCorreta()
+    while not verificarMissao() do
+        resetData()
+        pegarMissao()
     end
 end
 
--- **🛒 Comprar e Equipar o Slingshot**
-local function getAndEquipSlingshot()
-    print("🛒 Comprando Slingshot...")
-    Workspace.Merchants.WeaponMerchant.Clickable.Retum:FireServer("BuySlingshot")
-    wait(2)
+-- Pega um Compass
+local function pegarCompass()
+    workspace.Merchants.QuestMerchant.Clickable.Retum:FireServer("Claim1")
+end
 
-    local slingshot = Backpack:FindFirstChild("Slingshot")
-    if slingshot then
-        print("🎯 Equipando Slingshot...")
-        slingshot.Parent = Character
-    else
-        print("⚠️ Slingshot não encontrado na mochila!")
+-- Move o jogador até o objetivo do Compass
+local function moverParaCompass()
+    local compass = player.Backpack:FindFirstChild("Compass")
+    if compass and compass:FindFirstChild("Poser") then
+        humanoidRootPart.CFrame = CFrame.new(compass.Poser.Value)
     end
 end
 
--- **🎯 Atacar Mobs com Slingshot**
-local function attackMobs()
-    print("🎯 Iniciando ataque aos mobs...")
-    for _, mob in ipairs(Workspace.Enemies:GetChildren()) do
-        if table.find(mobsPermitidos, mob.Name) then
-            local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-            if mobRoot then
-                local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-                if humanoidRootPart then
-                    humanoidRootPart.CFrame = mobRoot.CFrame * CFrame.new(0, 25, 0)
-                end
-                
-                while mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 do
-                    print("🎯 Atacando: " .. mob.Name)
-                    Workspace.Remotes.WeaponRemote:FireServer("SlingshotAttack", mobRoot.Position)
-                    wait(0.5)
-                end
+-- Atacar mobs com o Slingshot
+local function atacarMobs()
+    for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+        if table.find(enemies, mob.Name) then
+            while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 do
+                humanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame + Vector3.new(0, 25, 0) -- Fica acima do mob
+                game:GetService("ReplicatedStorage").Weapons.Slingshot.Fire:FireServer(mob.HumanoidRootPart.Position)
+                wait(0.5)
             end
         end
     end
 end
 
--- **💰 Verificar Beri e Pegar Daily2**
-local function checkBeriAndClaimDaily2()
-    local userId = LocalPlayer.UserId
-    local beriValue = Workspace.UserData["User_" .. userId].Data.Cash.Value
+-- Verifica se o jogador tem 10k Beri antes de resgatar o Daily2
+local function verificarBeri()
+    return cashData.Value >= 10000
+end
 
-    if beriValue >= 10000 then
-        print("💰 Pegando recompensa do Daily2...")
-        Workspace.UserData["User_" .. userId].ChallengesRemote:FireServer("Claim", "Daily2")
-    else
-        print("⚠️ Não tem Beri suficiente para Daily2! (" .. beriValue .. "/10000)")
+-- Resgata as recompensas diárias
+local function resgatarDaily()
+    workspace.UserData["User_" .. player.UserId].ChallengesRemote:FireServer("Claim", "Daily1")
+    if verificarBeri() then
+        workspace.UserData["User_" .. player.UserId].ChallengesRemote:FireServer("Claim", "Daily2")
     end
+    workspace.UserData["User_" .. player.UserId].ChallengesRemote:FireServer("Claim", "Daily3") -- 30 kills
+    workspace.UserData["User_" .. player.UserId].ChallengesRemote:FireServer("Claim", "Daily4") -- Compass
 end
 
--- **🎁 Resgatar Recompensas do Daily**
-local function claimAllDaily()
-    local userId = LocalPlayer.UserId
-    print("🎁 Pegando recompensas do AllDaily...")
-    Workspace.UserData["User_" .. userId].ChallengesRemote:FireServer("Claim", "AllDaily")
-end
-
--- **🚀 Execução Principal**
-if getMission() then
+-- Processo principal
+while true do
+    garantirMissaoCorreta() -- Garante que a missão seja a certa antes de prosseguir
+    pegarCompass()
     wait(2)
-    getAndUseCompass()
+    moverParaCompass()
     wait(2)
-    getAndEquipSlingshot()
-    wait(2)
-    attackMobs()
-    wait(2)
-    checkBeriAndClaimDaily2()
-    wait(2)
-    claimAllDaily()
+    atacarMobs()
+    resgatarDaily()
+    wait(10) -- Aguarda um tempo antes de rodar de novo
 end
